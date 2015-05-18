@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8">
+	<title>jsonDB使用示例</title>
+	<script type="text/javascript" src="../lib/jsonDB.js"></script>
+	<script type="text/javascript">
+		window.onload = function(){
+			//创建一张user数据表，并定义一个DB的jsonDB别名
+			var data = [{username:'张三',sex:'男',birthday:{year:2000,month:6,day:18}},{username:'李红',sex:'女',birthday:{year:1986,month:9,day:22}}];
+			//以下方法可以通过两种方式获取别名，一个是通过init方法获取(推荐)，一个是获取jsonDB()方法的返回值
+			//以后示例中都将使用init()方法创建的别名操作数据
+			var jDB = jsonDB(data,'user').init('DB');
+
+			//插入一条新的数据
+			data = {username:'李想',sex:'男',birthday:{year:1990,month:2,day:15}};
+			DB.insert(data,'user');
+
+			//查询姓名为李红的性别,where条件必须加()否者会出现错误
+			var result =DB.query('select sex from user where (username="李红")');
+			//结果：[{"sex":"女"}]
+
+			//查询2000年之前出生的且按出生年先后排序
+			result =DB.query('select * from user where (birthday.year<2000) order by birthday.year asc');
+			//结果：[{"username":"李红","sex":"女","birthday":{"year":1986,"month":9,"day":22}},{"username":"李想","sex":"男","birthday":{"year":1990,"month":2,"day":15}}]	
+
+			//查询年龄最小的两个人
+			result =DB.query('select * from user order by birthday.year desc limit 2');
+			//查询结果：[{"username":"张三","sex":"男","birthday":{"year":2000,"month":6,"day":18}},{"username":"李想","sex":"男","birthday":{"year":1990,"month":2,"day":15}}]
+
+			//修改李红的出生日期
+			result =DB.query('update user set birthday.year=1991 where (username="李红") limit 1');
+			//影响条数为一条，可以通过DB.findAll('user')获取全部数据查看是否被修改成功
+
+			//删除姓名为李想的数据
+			result =DB.query('delete from user where (username="李想") limit 1');
+			//影响条数为一条，可以通过DB.findAll('user')获取全部数据查看是否被删除成功
+
+			//数据库中所有数据
+			//[{"username":"张三","sex":"男","birthday":{"year":2000,"month":6,"day":18}},{"username":"李红","sex":"女","birthday":{"year":1991,"month":9,"day":22}}]
+			result = DB.findAll('user');
+
+			//向数据表插入一条数据
+			DB.table('user').add({username:'王帅',sex:'男',birthday:{year:1995,month:10,day:23}});
+			
+			//查询所有人出生日期，并按出生年排序，由于之前使用table('user')定义为user表，所以可以省略，table方法定义是一直有效的，除非是重新设定了
+			result = DB.field('username,birthday').order('birthday.year').select();
+			//查询结果	[{"username":"李红","birthday":{"year":1991,"month":9,"day":22}},{"username":"王帅","birthday":{"year":1995,"month":10,"day":23}},{"username":"张三","birthday":{"year":2000,"month":6,"day":18}}]
+			
+			//先插入一些数据，方便后面的检索操作
+			DB.table('user').add({username:'李亨',sex:'男',birthday:{year:2008,month:8,day:8}})
+			.add({username:'张琦',sex:'男',birthday:{year:1990,month:10,day:23}})
+			.add({username:'李媛芳',sex:'女',birthday:{year:1985,month:2,day:28}})
+			.add({username:'李果果',sex:'女',birthday:{year:2002,month:3,day:15}})
+			.add({username:'张源',sex:'男',birthday:{year:2005,month:12,day:5}})
+			.add({username:'王丽娜',sex:'女',birthday:{year:1992,month:5,day:12}});
+
+			//高级查询之模糊搜索
+			//查询所有李姓成员(正则查找法)
+			result = DB.field(["username"]).where('username.match(/^李/)').select();
+			//查询结果[{"username":"李红"},{"username":"李亨"},{"username":"李媛芳"},{"username":"李果果"}]
+
+			//查询所有李姓成员(字符串搜索法)
+			result = DB.field(["username"]).where('username.indexOf("李")=0').select();
+			//查询结果[{"username":"李红"},{"username":"李亨"},{"username":"李媛芳"},{"username":"李果果"}]
+
+			//查询所有在1990年到1995年出生的人
+			result = DB.field(["username","birthday"]).where('birthday.year>=1990 and birthday.year<=1995').order('birthday.year').select();
+			//查询结果：[{"username":"张琦","birthday":{"year":1990,"month":10,"day":23}},{"username":"李红","birthday":{"year":1991,"month":9,"day":22}},{"username":"王丽娜","birthday":{"year":1992,"month":5,"day":12}},{"username":"王帅","birthday":{"year":1995,"month":10,"day":23}}]
+
+			alert(JSON.stringify(result));
+		}
+	</script>
+</head>
+<body>
+	
+</body>
+</html>
